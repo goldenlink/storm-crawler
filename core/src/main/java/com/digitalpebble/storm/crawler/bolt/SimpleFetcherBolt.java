@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.storm.guava.cache.Cache;
-import org.apache.storm.guava.cache.CacheBuilder;
+import org.apache.storm.shade.com.google.common.cache.Cache;
+import org.apache.storm.shade.com.google.common.cache.CacheBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
