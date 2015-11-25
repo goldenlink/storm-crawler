@@ -41,18 +41,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.digitalpebble.storm.crawler.Metadata;
-import com.digitalpebble.storm.crawler.filtering.URLFilters;
-import com.digitalpebble.storm.crawler.persistence.Status;
-import com.digitalpebble.storm.crawler.protocol.HttpHeaders;
-import com.digitalpebble.storm.crawler.protocol.Protocol;
-import com.digitalpebble.storm.crawler.protocol.ProtocolFactory;
-import com.digitalpebble.storm.crawler.protocol.ProtocolResponse;
-import com.digitalpebble.storm.crawler.util.ConfUtils;
-import com.digitalpebble.storm.crawler.util.MetadataTransfer;
-import com.digitalpebble.storm.crawler.util.PerSecondReducer;
-import com.digitalpebble.storm.crawler.util.URLUtil;
-import com.google.common.collect.Iterables;
 
 import backtype.storm.Config;
 import backtype.storm.metric.api.IMetric;
@@ -68,6 +56,20 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.TupleUtils;
 import backtype.storm.utils.Utils;
+
+import com.digitalpebble.storm.crawler.Metadata;
+import com.digitalpebble.storm.crawler.filtering.URLFilters;
+import com.digitalpebble.storm.crawler.persistence.Status;
+import com.digitalpebble.storm.crawler.protocol.HttpHeaders;
+import com.digitalpebble.storm.crawler.protocol.Protocol;
+import com.digitalpebble.storm.crawler.protocol.ProtocolFactory;
+import com.digitalpebble.storm.crawler.protocol.ProtocolResponse;
+import com.digitalpebble.storm.crawler.util.ConfUtils;
+import com.digitalpebble.storm.crawler.util.MetadataTransfer;
+import com.digitalpebble.storm.crawler.util.PerSecondReducer;
+import com.digitalpebble.storm.crawler.util.URLUtil;
+import com.google.common.collect.Iterables;
+
 import crawlercommons.robots.BaseRobotRules;
 import crawlercommons.url.PaidLevelDomain;
 
