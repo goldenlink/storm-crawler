@@ -75,21 +75,21 @@ public class JSoupParserBolt extends BaseRichBolt {
     private static final Logger LOG = LoggerFactory
             .getLogger(JSoupParserBolt.class);
 
-    private OutputCollector collector;
+    protected OutputCollector collector;
 
-    private MultiCountMetric eventCounter;
+    protected MultiCountMetric eventCounter;
 
-    private ParseFilter parseFilters = null;
+    protected ParseFilter parseFilters = null;
 
-    private URLFilters urlFilters = null;
+    protected URLFilters urlFilters = null;
 
-    private MetadataTransfer metadataTransfer;
+    protected MetadataTransfer metadataTransfer;
 
-    private boolean trackAnchors = true;
+    protected boolean trackAnchors = true;
 
-    private boolean emitOutlinks = true;
+    protected boolean emitOutlinks = true;
 
-    private boolean robots_noFollow_strict = true;
+    protected boolean robots_noFollow_strict = true;
 
     /**
      * If a Tuple is not HTML whether to send it to the status stream as an
