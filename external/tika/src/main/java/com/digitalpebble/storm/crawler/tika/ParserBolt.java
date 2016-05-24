@@ -17,46 +17,6 @@
 
 package com.digitalpebble.storm.crawler.tika;
 
-import static com.digitalpebble.storm.crawler.Constants.StatusStreamName;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.html.dom.HTMLDocumentImpl;
-import org.apache.tika.Tika;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.html.HtmlMapper;
-import org.apache.tika.parser.html.IdentityHtmlMapper;
-import org.apache.tika.sax.BodyContentHandler;
-import org.apache.tika.sax.Link;
-import org.apache.tika.sax.LinkContentHandler;
-import org.apache.tika.sax.TeeContentHandler;
-import org.apache.tika.sax.XHTMLContentHandler;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.DocumentFragment;
-import org.xml.sax.ContentHandler;
-
-import com.digitalpebble.storm.crawler.Constants;
-import com.digitalpebble.storm.crawler.Metadata;
-import com.digitalpebble.storm.crawler.filtering.URLFilters;
-import com.digitalpebble.storm.crawler.parse.Outlink;
-import com.digitalpebble.storm.crawler.parse.ParseData;
-import com.digitalpebble.storm.crawler.parse.ParseFilter;
-import com.digitalpebble.storm.crawler.parse.ParseFilters;
-import com.digitalpebble.storm.crawler.parse.ParseResult;
-import com.digitalpebble.storm.crawler.persistence.Status;
-import com.digitalpebble.storm.crawler.util.ConfUtils;
-import com.digitalpebble.storm.crawler.util.MetadataTransfer;
-import com.digitalpebble.storm.crawler.util.URLUtil;
-
 import backtype.storm.metric.api.MultiCountMetric;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -65,6 +25,32 @@ import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import com.digitalpebble.storm.crawler.Constants;
+import com.digitalpebble.storm.crawler.Metadata;
+import com.digitalpebble.storm.crawler.filtering.URLFilters;
+import com.digitalpebble.storm.crawler.parse.*;
+import com.digitalpebble.storm.crawler.persistence.Status;
+import com.digitalpebble.storm.crawler.util.ConfUtils;
+import com.digitalpebble.storm.crawler.util.MetadataTransfer;
+import com.digitalpebble.storm.crawler.util.URLUtil;
+import org.apache.commons.lang.StringUtils;
+import org.apache.html.dom.HTMLDocumentImpl;
+import org.apache.tika.Tika;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.html.HtmlMapper;
+import org.apache.tika.parser.html.IdentityHtmlMapper;
+import org.apache.tika.sax.*;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.DocumentFragment;
+import org.xml.sax.ContentHandler;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.*;
+
+import static com.digitalpebble.storm.crawler.Constants.StatusStreamName;
 
 /**
  * Uses Tika to parse the output of a fetch and extract text + metadata
@@ -90,13 +76,15 @@ public class ParserBolt extends BaseRichBolt {
     private MetadataTransfer metadataTransfer;
     private boolean emitOutlinks = true;
 
+    private boolean ignorePreviouslyParsed = false;
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void prepare(Map conf, TopologyContext context,
             OutputCollector collector) {
 
         emitOutlinks = ConfUtils.getBoolean(conf, "parser.emitOutlinks", true);
-
+        ignorePreviouslyParsed = ConfUtils.getBoolean(conf, "parser.tika.ignore.parsed", false);
         urlFilters = URLFilters.fromConf(conf);
 
         parseFilters = ParseFilters.fromConf(conf);
@@ -141,10 +129,19 @@ public class ParserBolt extends BaseRichBolt {
     public void execute(Tuple tuple) {
         eventCounter.scope("tuple_in").incrBy(1);
 
-        byte[] content = tuple.getBinaryByField("content");
-
+        // Extract tuple values
         String url = tuple.getStringByField("url");
         Metadata metadata = (Metadata) tuple.getValueByField("metadata");
+        byte[] content = tuple.getBinaryByField("content");
+        String text = tuple.getStringByField("text");
+        if (ignorePreviouslyParsed) {
+            if (text != null && StringUtils.isNotBlank(text)) {
+                collector.emit(tuple, new Values(url, content, metadata, text));
+                collector.ack(tuple);
+                eventCounter.scope("tuple_success").incrBy(1);
+                return;
+            }
+        }
 
         long start = System.currentTimeMillis();
 
@@ -180,7 +177,6 @@ public class ParserBolt extends BaseRichBolt {
         }
 
         // parse
-        String text;
         try {
             tika.getParser().parse(bais, teeHandler, md, parseContext);
             text = textHandler.toString();
